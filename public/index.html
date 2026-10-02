@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weather Station Hub - Physical Station Console</title>
+  <meta name="description" content="Real-time USB weather station dashboard with outdoor telemetry, indoor comfort, wind compass, and integrations.">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="icon" type="image/png" href="Logo14.png">
+  <link rel="apple-touch-icon" href="Logo14.png">
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <!-- Top Navbar Header -->
+  <header class="navbar">
+    <div class="brand">
+      <img src="Logo14.png" alt="AK DEV Weather Station Logo" class="brand-logo-img">
+      <div class="brand-text">
+        <div class="brand-title">WEATHER STATION HUB</div>
+        <div class="brand-subtitle">Fine Offset & EcoWitt (WS90) Protocol Engine</div>
+      </div>
+    </div>
+
+    <div class="nav-controls">
+      <!-- Live Heartbeat Connection Status Pill -->
+      <div class="status-pill" id="statusPill">
+        <div id="statusDot" class="status-dot live"></div>
+        <span id="statusText">Live USB Connected</span>
+      </div>
+
+      <!-- Unit Converters -->
+      <select id="unitTemp" class="unit-select">
+        <option value="C" selected>°C</option>
+        <option value="F">°F</option>
+      </select>
+
+      <select id="unitPressure" class="unit-select">
+        <option value="hPa" selected>hPa</option>
+        <option value="inHg">inHg</option>
+        <option value="mmHg">mmHg</option>
+      </select>
+
+      <select id="unitWind" class="unit-select">
+        <option value="mph" selected>mph</option>
+        <option value="ms">m/s</option>
+        <option value="kmh">km/h</option>
+        <option value="knots">knots</option>
+      </select>
+
+      <select id="unitDistance" class="unit-select">
+        <option value="km" selected>km</option>
+        <option value="mi">mi</option>
+      </select>
+
+      <!-- Kiosk Mode Button -->
+      <button id="btnKiosk" class="btn" title="Toggle Fullscreen Kiosk Mode">📺 Kiosk</button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="container">
+
+    <!-- Smart Alarm Banner Notifications Container -->
+    <div id="alarmBannerContainer" class="alarm-container" style="display: none;"></div>
+
+    <!-- Navigation Tabs -->
+    <nav class="tabs-nav">
+      <button class="tab-btn active" data-tab="tabDashboard">Live Dashboard</button>
+      <button class="tab-btn" data-tab="tabRadar">Online Live Weather</button>
+      <button class="tab-btn" data-tab="tabAnalytics">Trend Analytics</button>
+      <button class="tab-btn" data-tab="tabHistory">Historical Logs</button>
+      <button class="tab-btn" data-tab="tabIntegrations">Device & Integrations</button>
+    </nav>
+
+    <!-- TAB 1: LIVE DASHBOARD -->
+    <div id="tabDashboard" class="tab-content active">
+
+      <!-- TOP ROW: ALL OUTDOOR DATA -->
+      <div class="row-outdoor">
+        
+        <!-- Outdoor Temp Card -->
+        <div class="card card-clickable" data-metric="outdoorTemp" title="Click to view Outdoor Temperature History Graph">
+          <div class="card-header">
+            <div class="card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>
+              Outdoor Temperature
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">Dew: <span id="valDewPoint" class="temp-outdoor">--</span></div>
+          </div>
+          <div id="valOutdoorTemp" class="big-value temp-outdoor">--</div>
+          
+          <!-- High/Low Spectrum Bar -->
+          <div class="spectrum-box">
+            <div class="sub-info">
+              <div>Min: <span id="statMinOutdoorTemp">--</span></div>
+              <div style="margin-left: auto;">Max: <span id="statMaxOutdoorTemp">--</span></div>
+            </div>
+            <div class="spectrum-track">
+              <div id="spectrumTempMarker" class="spectrum-marker" style="left: 50%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Outdoor Humidity Card -->
+        <div class="card card-clickable" data-metric="outdoorHumidity" title="Click to view Outdoor Humidity History Graph">
+          <div class="card-header">
+            <div class="card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+              Outdoor Humidity
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">Heat Index: <span id="valHeatIndex">--</span></div>
+          </div>
+          <div id="valOutdoorHumidity" class="big-value humidity-val">--</div>
+          
+          <div class="spectrum-box">
+            <div class="sub-info">
+              <div>Min: <span id="statMinOutdoorHumidity">--</span></div>
+              <div style="margin-left: auto;">Max: <span id="statMaxOutdoorHumidity">--</span></div>
+            </div>
+            <div class="spectrum-track">
+              <div id="spectrumHumMarker" class="spectrum-marker" style="left: 50%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Barometric Pressure Card with Animated Weather Trend -->
+        <div class="card card-clickable" data-metric="pressure" title="Click to view Barometric Pressure History Graph">
+          <div class="card-header">
+            <div class="card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 12l3-3"/></svg>
+              Barometric Pressure
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.4rem;">
+              <div style="font-size: 0.75rem; color: var(--text-muted);">Abs: <span id="valAbsPressure">--</span></div>
+              <div id="trendAnimBox"></div>
+              <span id="badgeForecast" class="forecast-badge">➡️ STEADY</span>
+            </div>
+          </div>
+          <div id="valRelPressure" class="big-value pressure-val">--</div>
+          
+          <div class="spectrum-box">
+            <div class="sub-info">
+              <div>Min: <span id="statMinRelPressure">--</span></div>
+              <div style="margin-left: auto;">Max: <span id="statMaxRelPressure">--</span></div>
+            </div>
+            <div class="spectrum-track">
+              <div id="spectrumPressureMarker" class="spectrum-marker" style="left: 50%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rainfall Counter Card -->
+        <div class="card card-clickable" data-metric="rain" title="Click to view Rainfall History Graph">
+          <div class="card-header">
+            <div class="card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 14.89C3.04 13.9 2.5 12.55 2.5 11.11c0-2.9 2.35-5.25 5.25-5.25.4 0 .79.05 1.16.14A7.26 7.26 0 0 1 15.65 3c3.87 0 7.02 3.03 7.1 6.89.92.93 1.45 2.22 1.45 3.56 0 2.8-2.2 5.08-4.97 5.17H5.25C4.56 18.62 4 17.06 4 14.89Z"/></svg>
+              Daily Rain (Resets Midnight)
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">Rate: <span id="valRainRate">0.0 mm/h</span></div>
+          </div>
+          <div id="valDailyRain" class="big-value rain-val">0.0 mm</div>
+          <div class="sub-info">
+            <div>1-Hour: <span id="valRain1h">0.0 mm</span></div>
+            <div>24-Hour: <span id="valRain24h">0.0 mm</span></div>
+            <div>Total: <span id="valLifetimeRain">--</span></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- SECOND ROW: ALL INDOOR DATA -->
+      <div class="row-indoor">
+        
+        <!-- Indoor Temp Card -->
+        <div class="card card-clickable" data-metric="indoorTemp" title="Click to view Indoor Temperature History Graph">
+          <div class="card-header">
+            <div class="card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+              Indoor Temperature
+            </div>
+          </div>
+          <div id="valIndoorTemp" class="big-value temp-indoor">--</div>
+          <div class="sub-info">
+            <div>Comfort Temp: <span style="color:#a7f3d0;">18°C - 24°C</span></div>
+          </div>
+        </div>
+
+        <!-- Indoor Humidity Card -->
+        <div class="card card-clickable" data-metric="indoorHumidity" title="Click to view Indoor Humidity History Graph">
+          <div class="card-header">
+            <div class="card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+              Indoor Humidity
+            </div>
+          </div>
+          <div id="valIndoorHumidity" class="big-value humidity-val">--</div>
+          <div class="sub-info">
+            <div>Ideal Level: <span style="color:#a7f3d0;">40% - 60%</span></div>
+          </div>
+        </div>
+
+        <!-- Indoor Comfort Index -->
+        <div class="card card-clickable" data-metric="indoorTemp" title="Click to view Indoor Climate History Graph">
+          <div class="card-header">
+            <div class="card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/></svg>
+              Indoor Comfort Index
+            </div>
+          </div>
+          <div id="valComfortStatus" class="big-value" style="color: #34d399; font-size: 1.6rem;">COMFORTABLE</div>
+          <div class="sub-info">
+            <div>Status: <span id="valComfortDesc">Ideal indoor climate</span></div>
+          </div>
+        </div>
+
+        <!-- Mold & Condensation Risk -->
+        <div class="card card-clickable" data-metric="indoorHumidity" title="Click to view Mold Risk Humidity History Graph">
+          <div class="card-header">
+            <div class="card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              Mold Risk Assessment
+            </div>
+          </div>
+          <div id="valMoldRisk" class="big-value" style="color: #38bdf8; font-size: 1.6rem;">LOW RISK</div>
+          <div class="sub-info">
+            <div>Humidity Status: <span id="valMoldDesc">Air moisture in safe range</span></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- GARAGE ENVIRONMENT ROW -->
+      <div class="row-garage">
+        
+        <!-- Garage Temp Card -->
+        <div class="card card-clickable" data-metric="garageTemp" title="Click to view Garage Temperature History Graph">
+          <div class="card-header">
+            <div class="card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>
+              Garage Temperature
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">Dew: <span id="valGarageDewPoint" class="temp-outdoor">--</span></div>
+          </div>
+          <div id="valGarageTemp" class="big-value temp-outdoor">--</div>
+          
+          <div class="spectrum-box">
+            <div class="sub-info">
+              <div>Min: <span id="statMinGarageTemp">--</span></div>
+              <div style="margin-left: auto;">Max: <span id="statMaxGarageTemp">--</span></div>
+            </div>
+            <div class="spectrum-track">
+              <div id="spectrumGarageTempMarker" class="spectrum-marker" style="left: 50%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Garage Humidity Card -->
+        <div class="card card-clickable" data-metric="garageHumidity" title="Click to view Garage Humidity History Graph">
+          <div class="card-header">
+            <div class="card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+              Garage Humidity
+            </div>
+            <span id="badgeGarageHum" class="forecast-badge" style="background: rgba(56,189,248,0.2); color: #38bdf8;">OK</span>
+          </div>
+          <div id="valGarageHumidity" class="big-value humidity-val">--</div>
+          
+          <div class="spectrum-box">
+            <div class="sub-info">
+              <div>Min: <span id="statMinGarageHumidity">--</span></div>
+              <div style="margin-left: auto;">Max: <span id="statMaxGarageHumidity">--</span></div>
+            </div>
+            <div class="spectrum-track">
+              <div id="spectrumGarageHumMarker" class="spectrum-marker" style="left: 50%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Garage Climate Overview Card -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v16"/><path d="M9 21v-4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v4"/></svg>
+              Garage Climate Alert
+            </div>
+          </div>
+          <div id="valGarageAlert" class="big-value" style="color: #34d399; font-size: 1.5rem;">NORMAL</div>
+          <div class="sub-info">
+            <div>Status: <span id="valGarageAlertDesc">Safe garage climate</span></div>
+          </div>
+        </div>
+
+        <!-- Garage vs House Delta Card -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+              Garage vs Indoor Delta
+            </div>
+          </div>
+          <div id="valGarageDelta" class="big-value" style="color: #38bdf8; font-size: 1.5rem;">--</div>
+          <div class="sub-info">
+            <div>Difference: <span id="valGarageDeltaDesc">Comparing to house indoor temp</span></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- DOWNSTAIRS ENVIRONMENT ROW -->
+      <div class="row-downstairs">
+        
+        <!-- Downstairs Temp Card -->
+        <div class="card card-clickable" data-metric="downstairsTemp" title="Click to view Downstairs Temperature History Graph">
+          <div class="card-header">
+            <div class="card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>
+              Downstairs Temperature
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">Dew: <span id="valDownstairsDewPoint" class="temp-outdoor">--</span></div>
+          </div>
+          <div id="valDownstairsTemp" class="big-value temp-outdoor">--</div>
+          
+          <div class="spectrum-box">
+            <div class="sub-info">
+              <div>Min: <span id="statMinDownstairsTemp">--</span></div>
+              <div style="margin-left: auto;">Max: <span id="statMaxDownstairsTemp">--</span></div>
+            </div>
+            <div class="spectrum-track">
+              <div id="spectrumDownstairsTempMarker" class="spectrum-marker" style="left: 50%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Downstairs Humidity Card -->
+        <div class="card card-clickable" data-metric="downstairsHumidity" title="Click to view Downstairs Humidity History Graph">
+          <div class="card-header">
+            <div class="card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+              Downstairs Humidity
+            </div>
+            <span id="badgeDownstairsHum" class="forecast-badge" style="background: rgba(56,189,248,0.2); color: #38bdf8;">OK</span>
+          </div>
+          <div id="valDownstairsHumidity" class="big-value humidity-val">--</div>
+          
+          <div class="spectrum-box">
+            <div class="sub-info">
+              <div>Min: <span id="statMinDownstairsHumidity">--</span></div>
+              <div style="margin-left: auto;">Max: <span id="statMaxDownstairsHumidity">--</span></div>
+            </div>
+            <div class="spectrum-track">
+              <div id="spectrumDownstairsHumMarker" class="spectrum-marker" style="left: 50%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Downstairs Climate Overview Card -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+              Downstairs Climate Status
+            </div>
+          </div>
+          <div id="valDownstairsAlert" class="big-value" style="color: #34d399; font-size: 1.5rem;">NORMAL</div>
+          <div class="sub-info">
+            <div>Status: <span id="valDownstairsAlertDesc">Optimal downstairs climate</span></div>
+          </div>
+        </div>
+
+        <!-- Downstairs vs Main Indoor Delta Card -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v1"/><path d="M18 8l4 4-4 4"/></svg>
+              Downstairs vs Main Delta
+            </div>
+          </div>
+          <div id="valDownstairsDelta" class="big-value" style="color: #38bdf8; font-size: 1.5rem;">--</div>
+          <div class="sub-info">
+            <div>Difference: <span id="valDownstairsDeltaDesc">Comparing to main indoor temp</span></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- THIRD ROW: ECOWITT WITTBOY WS90 SOLAR, UV, PIEZO & SENSOR HEALTH CARDS -->
+      <div class="row-solar">
+        
+        <!-- Solar Radiation Card -->
+        <div class="card card-clickable" data-metric="solarRadiation" title="Click to view Solar Radiation History Graph">
+          <div class="card-header">
+            <div class="card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+              Solar Radiation
+            </div>
+          </div>
+          <div id="valSolarRadCard" class="big-value" style="color: #f59e0b;">-- W/m²</div>
+          <div class="sub-info">
+            <div>Max Today: <span id="statMaxSolarRad" style="color: #f59e0b; font-weight: 700;">-- W/m²</span></div>
+            <div>Lux Equiv: <span id="valLuxEquiv">-- lux</span></div>
+          </div>
+        </div>
+
+        <!-- UV Index Card -->
+        <div class="card card-clickable" data-metric="uvIndex" title="Click to view UV Index History Graph">
+          <div class="card-header">
+            <div class="card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+              UV Index & Exposure
+            </div>
+            <span id="badgeUvLevel" class="forecast-badge" style="background: rgba(16,185,129,0.2); color: #10b981;">LOW</span>
+          </div>
+          <div id="valUvIndexCard" class="big-value" style="color: #e11d48;">--</div>
+          <div class="sub-info">
+            <div>Max Today: <span id="statMaxUvIndex" style="color: #e11d48; font-weight: 700;">--</span></div>
+            <div>Risk Level: <span id="valUvAdvice">Low Risk</span></div>
+          </div>
+        </div>
+
+        <!-- WS90 Piezoelectric Rain Rate Card -->
+        <div class="card card-clickable" data-metric="piezoRain" title="Click to view WS90 Piezo Rain Rate History Graph">
+          <div class="card-header">
+            <div class="card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 16.2A4.5 4.5 0 0 0 17.5 8h-1.8A7 7 0 1 0 2 14.9"/><path d="M16 14v6M8 14v6M12 16v6"/></svg>
+              WS90 Piezo Rain Sensor
+            </div>
+          </div>
+          <div id="valPiezoRainRateCard" class="big-value rain-val">0.0 mm/h</div>
+          <div class="sub-info">
+            <div>Piezo Daily: <span id="valPiezoDailyRainCard">0.0 mm</span></div>
+            <div>Sensor: <span style="color:#a7f3d0; font-weight: 600;">Haptic Piezo Array</span></div>
+          </div>
+        </div>
+
+        <!-- Ecowitt WH57 Lightning Detector Card -->
+        <div class="card card-clickable" data-metric="lightning" title="Click to view Lightning Strike History Graph">
+          <div class="card-header">
+            <div class="card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              Lightning Detector (WH57)
+            </div>
+            <span id="badgeLightningStatus" class="forecast-badge" style="background: rgba(16,185,129,0.2); color: #10b981;">NO RECENT STRIKES</span>
+          </div>
+          <div id="valLightningDistCard" class="big-value" style="color: #f59e0b;">--</div>
+          <div class="sub-info">
+            <div>Strikes Today: <span id="valLightningCountCard" style="color: #f59e0b; font-weight: 700;">0</span></div>
+            <div>Last Strike: <span id="valLightningTimeCard" style="color: #a7f3d0;">--</span></div>
+          </div>
+        </div>
+
+        <!-- WS90 Supercapacitor & Health Card -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="16" height="10" rx="2"/><line x1="22" y1="11" x2="22" y2="13"/></svg>
+              WS90 Solar Supercapacitor
+            </div>
+            <span id="badgeCapStatus" class="forecast-badge" style="background: rgba(16,185,129,0.2); color: #10b981;">SOLAR CHARGED</span>
+          </div>
+          <div id="valWs90CapVoltCard" class="big-value" style="color: #34d399;">-- V</div>
+          <div class="sub-info">
+            <div>Supercap Charge: <span id="valCapChargeState" style="color: #a7f3d0;">Charged</span></div>
+            <div>WH57 Batt: <span id="valWh57BattStatus" style="color: #10b981; font-weight: 700;">Normal</span></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- BOTTOM ROW: COMPACT GAUGES, COMPASS, RADAR & ASTRONOMY -->
+      <div class="row-bottom">
+        
+        <!-- 16-Point Wind Rose Direction Frequency Card -->
+        <div class="card card-clickable" data-metric="windDir" title="Click to view Wind Direction History Graph">
+          <div class="card-header">
+            <div class="card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2v20M2 12h20"/></svg>
+              Wind Rose Distribution
+            </div>
+            <div style="font-size: 0.72rem; color: var(--accent-wind); font-weight: 700;" id="valDominantWind">NNE (Dominant)</div>
+          </div>
+          <div id="windRoseDiagramContainer" style="flex: 1; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; position: relative;"></div>
+        </div>
+
+        <!-- Enlarged Wind Speed & 16-Point Compass Rose Card -->
+        <div class="card card-clickable" data-metric="wind" title="Click to view Wind Speed & Gust History Graph">
+          <div class="card-header">
+            <div class="card-title">Wind Speed & 16-Point Compass Rose</div>
+            <div style="font-size: 0.85rem; color: var(--accent-wind); font-weight: 700;" id="valWindDirText">N (0°)</div>
+          </div>
+          
+          <div style="flex: 1; display: flex; align-items: center; justify-content: space-around; width: 100%; height: 100%; padding: 0.2rem 0;">
+            <div class="compass-container" style="flex: 1; height: 100%; max-width: 260px; max-height: 260px; display: flex; align-items: center; justify-content: center;">
+              <div id="windRoseSVG" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;"></div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; justify-content: center; gap: 0.8rem; padding-left: 0.5rem;">
+              <div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Avg Wind Speed</div>
+                <div id="valWindSpeed" class="big-value" style="color: var(--accent-wind); font-size: 2.5rem; font-weight: 800;">--</div>
+              </div>
+              <div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Peak Wind Gust</div>
+                <div id="valWindGust" class="big-value" style="color: #f59e0b; font-size: 2.0rem; font-weight: 800;">--</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Local Weather Outlook & Solar Astronomy Card with Large Celestial Animation -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Local Weather Outlook & Solar Astronomy</div>
+            <span id="celestialTag" class="forecast-badge" style="background: rgba(56,189,248,0.15); color: #38bdf8;">DAYTIME</span>
+          </div>
+          
+          <div style="display: flex; align-items: center; justify-content: space-around; padding: 0.2rem 0; width: 100%; flex: 1;">
+            <!-- Large Celestial Animated Sun or Moon (155px) -->
+            <div id="celestialGraphicBox" style="width: 155px; height: 155px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; margin-left: 0.25rem;"></div>
+
+            <div style="display: flex; flex-direction: column; gap: 0.3rem;">
+              <div>
+                <div id="moonPhaseName" style="font-size: 1.15rem; font-weight: 700; color: #e2e8f0;">Full Moon</div>
+                <div style="font-size: 0.72rem; color: var(--text-muted);">Illumination: <span id="moonIllumination" style="color:#38bdf8; font-weight:700;">99%</span></div>
+                <div style="font-size: 0.72rem; color: var(--text-muted);">Moon Age: <span id="moonAge">14.8 days</span></div>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 0.15rem; font-size: 0.72rem; margin-top: 0.15rem;">
+                <div>📍 Location: <span id="valLocation" style="font-weight: 600; color: #38bdf8;">52.69°N, 2.03°W</span></div>
+                <div>⛰️ Altitude: <span id="valAltitude" style="font-weight: 600; color: #a7f3d0;">140m (459 ft)</span></div>
+                <div>🌅 Sunrise: <span id="valSunrise" style="font-weight: 700;">06:05</span> | 🌇 Sunset: <span id="valSunset" style="font-weight: 700;">20:15</span></div>
+                <div>⏳ Daylight: <span id="valDaylight" style="color: #f59e0b; font-weight:700;">14h 10m</span></div>
+                <div id="solarUvRow" style="margin-top: 0.15rem;">☀️ Solar: <span id="valSolarRad" style="color: #f59e0b; font-weight:700;">-- W/m²</span> | 🔆 UV: <span id="valUvIndex" style="color: #e11d48; font-weight:700;">--</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- TAB 2: ONLINE LIVE WEATHER -->
+    <div id="tabRadar" class="tab-content">
+      <div class="card" style="height: 100%; flex: 1; display: flex; flex-direction: column;">
+        <div class="card-header" style="flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+          <div>
+            <div class="card-title" style="display: flex; align-items: center; gap: 0.4rem;">
+              <span class="bolt-flash" style="color: #fef08a;">⚡</span> Live Rain Radar & Real-Time Lightning Strikes
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">Interactive Doppler Radar with Real-Time Lightning Strike Detection</div>
+          </div>
+          
+          <!-- Layer Switcher Pills -->
+          <div class="radar-layer-pills" style="display: flex; gap: 0.35rem; background: rgba(0, 0, 0, 0.3); padding: 0.25rem; border-radius: 8px; border: 1px solid var(--border-color);">
+            <button class="range-pill active" id="btnRadarLightning" data-url="https://www.rainviewer.com/map.html?loc=52.6857,-2.0336,7&o=83&c=1&l=1&v=1&sm=1&sn=1" title="RainViewer HD Precipitation Radar with Lightning Strike Overlay">⚡ Rain & Lightning</button>
+            <button class="range-pill" id="btnBlitzortung" data-url="https://map.blitzortung.org/#7/52.6857/-2.0336" title="Blitzortung Real-Time Global Lightning Detection Network">⚡ Blitzortung Strikes</button>
+            <button class="range-pill" id="btnWindyRadar" data-url="https://embed.windy.com/embed2.html?lat=52.6857&lon=-2.0336&detailMode=false&zoom=7&level=surface&overlay=radar&product=radar&menu=&message=true&marker=&calendar=now&pressure=&type=map&location=coordinates&detail=&metricWind=default&metricTemp=default&radarRange=-1" title="Windy Live Radar & Lightning Tracker">🌀 Windy Radar</button>
+            <button class="range-pill" id="btnSatelliteClouds" data-url="https://www.rainviewer.com/map.html?loc=52.6857,-2.0336,7&o=83&c=3&l=1&v=1&sm=1&sn=1" title="Infrared Satellite Cloud Coverage with Lightning Overlay">🛰️ Satellite & Lightning</button>
+          </div>
+        </div>
+
+        <div class="radar-box" style="flex: 1; min-height: 0;">
+          <iframe id="radarIframe" class="radar-iframe" src="https://www.rainviewer.com/map.html?loc=52.6857,-2.0336,7&o=83&c=1&l=1&v=1&sm=1&sn=1" loading="lazy"></iframe>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: TREND ANALYTICS -->
+    <div id="tabAnalytics" class="tab-content">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; flex: 1; height: 100%;">
+        <div class="card" style="height: 100%;">
+          <div class="card-title" id="titleChartTemp">Outdoor Temperature Trend</div>
+          <canvas id="chartTemp"></canvas>
+        </div>
+        <div class="card" style="height: 100%;">
+          <div class="card-title" id="titleChartPressure">Barometric Pressure Trend</div>
+          <canvas id="chartPressure"></canvas>
+        </div>
+        <div class="card" style="height: 100%;">
+          <div class="card-title" id="titleChartWind">Wind Speed & Gust Trend</div>
+          <canvas id="chartWind"></canvas>
+        </div>
+        <div class="card" style="height: 100%;">
+          <div class="card-title">Outdoor, Indoor, Garage & Downstairs Humidity Trend (%)</div>
+          <canvas id="chartHumidity"></canvas>
+        </div>
+        <div class="card" style="height: 100%; grid-column: span 2;">
+          <div class="card-title" id="titleChartGarage">Garage & Downstairs Climate Trend</div>
+          <canvas id="chartGarage"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: HISTORICAL LOGS -->
+    <div id="tabHistory" class="tab-content">
+      <div class="card" style="height: 100%;">
+        <div class="card-header">
+          <div class="card-title">Recorded Telemetry Logs</div>
+          <a href="/api/weather/export/csv" class="btn">📥 Export CSV</a>
+        </div>
+        <div style="flex: 1; overflow-y: auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Outdoor Temp</th>
+                <th>Outdoor Hum</th>
+                <th>Garage Temp</th>
+                <th>Garage Hum</th>
+                <th>Downstairs Temp</th>
+                <th>Downstairs Hum</th>
+                <th>Pressure</th>
+                <th>Wind Speed</th>
+                <th>Wind Dir</th>
+                <th>Indoor Temp</th>
+                <th>Indoor Hum</th>
+              </tr>
+            </thead>
+            <tbody id="tableHistoryBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 5: DEVICE & INTEGRATIONS SETTINGS -->
+    <div id="tabIntegrations" class="tab-content">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+        
+        <!-- Station Hardware & Driver Selection Card -->
+        <div class="card" style="grid-column: span 2;">
+          <div class="card-title" style="margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between;">
+            <span>📡 Active Weather Station Hardware & Driver Mode</span>
+            <span id="stationTypeBadge" class="forecast-badge" style="background: rgba(16,185,129,0.2); color: #10b981;">Fine Offset Direct USB</span>
+          </div>
+          <form id="formStationDriver" style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <div>
+              <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.3rem;">Select Primary Weather Station Input Source</div>
+              <select id="selectDeviceType" class="unit-select" style="width: 100%; font-size: 0.9rem; font-weight: 600;">
+                <option value="fineoffset_usb" selected>🔌 Fine Offset Direct USB Console (WH1080 / WH2900 / HP2550 via Direct USB)</option>
+                <option value="ecowitt_wittboy">📶 EcoWitt Wittboy & WS90 Sensor Array (Wi-Fi HTTP Custom Upload Listener)</option>
+                <option value="simulation">🧪 Mock / Simulation Mode (Demonstration Stream)</option>
+              </select>
+            <!-- Fine Offset Direct USB Setup & Controls Panel -->
+            <div id="panelFineOffsetSetup" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 0.9rem; margin-top: 0.2rem;">
+              <div style="font-weight: 700; color: #10b981; font-size: 0.9rem; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.5rem;">
+                <span>🔌 Fine Offset Direct USB HID Hardware Controls</span>
+              </div>
+              <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.6rem; line-height: 1.4;">
+                Direct USB connection reads console memory (WH1080 / WH2900 / HP2550). Reset the physical USB controller connection or pair via WebHID browser USB below:
+              </div>
+              <div style="display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center;">
+                <button type="button" id="btnResetUSB" class="btn" style="border-color: #f59e0b; color: #f59e0b; font-weight: 600;" title="Reset USB Connection (Soft HID & Hard Windows USB Reset)">⚡ Reset USB Connection</button>
+                <button type="button" id="btnPairWebHID" class="btn btn-primary" title="Pair via WebHID Browser USB">🔌 Pair WebHID Browser Device</button>
+              </div>
+            </div>
+            
+            <!-- EcoWitt Wittboy WS90 Setup & Status Panel -->
+            <div id="panelEcowittSetup" style="display: none; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 0.9rem; margin-top: 0.2rem;">
+              <div style="font-weight: 700; color: #38bdf8; font-size: 0.9rem; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.5rem;">
+                <span>🌾 EcoWitt Wittboy (WS90) Gateway HTTP Custom Listener</span>
+                <span id="badgeEcowittLive" class="status-dot live" style="margin-left: auto;"></span>
+              </div>
+              <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.6rem; line-height: 1.4;">
+                Configure your EcoWitt GW1100, GW2000, or Wittboy Wi-Fi Hub to upload 7-in-1 telemetry (piezoelectric rainfall, solar radiation, UV index, ultrasonic wind) directly to this server using the <strong>Ecowitt App</strong> or <strong>WSView Plus App</strong> (Settings &rarr; Customized):
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; background: rgba(0,0,0,0.3); padding: 0.6rem; border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; text-align: center; margin-bottom: 0.6rem;">
+                <div><div style="font-size:0.65rem; color:#94a3b8;">PROTOCOL</div><div style="color:#f59e0b; font-weight:700;">Ecowitt</div></div>
+                <div><div style="font-size:0.65rem; color:#94a3b8;">SERVER IP / HOST</div><div id="ecowittServerIp" style="color:#38bdf8; font-weight:700;">127.0.0.1</div></div>
+                <div><div style="font-size:0.65rem; color:#94a3b8;">PORT</div><div style="color:#a855f7; font-weight:700;">3000</div></div>
+                <div><div style="font-size:0.65rem; color:#94a3b8;">PATH</div><div style="color:#10b981; font-weight:700;">/api/weather/ecowitt</div></div>
+              </div>
+              <div style="font-size: 0.75rem; color: #cbd5e1; display: flex; gap: 1.2rem; flex-wrap: wrap;">
+                <div>Model: <span id="infoEcowittModel" style="font-weight: 700; color: #38bdf8;">Wittboy WS90</span></div>
+                <div>WS90 Supercap: <span id="infoEcowittCapVolt" style="font-weight: 700; color: #a7f3d0;">--</span></div>
+                <div>Battery Health: <span id="infoEcowittBattery" style="font-weight: 700; color: #34d399;">--</span></div>
+                <div>Last Upload: <span id="infoEcowittLastSeen" style="font-weight: 700;">Never</span></div>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="align-self: flex-start; margin-top: 0.2rem;">Save Active Station Hardware Settings</button>
+          </form>
+        </div>
+        
+        <!-- Weather Underground Form -->
+        <div class="card">
+          <div class="card-title" style="margin-bottom: 0.75rem;">🌐 Weather Underground (PWS) Auto-Upload</div>
+          <form id="formWU" style="display: flex; flex-direction: column; gap: 0.6rem;">
+            <label style="font-size: 0.8rem; display: flex; align-items: center; gap: 0.5rem;">
+              <input type="checkbox" id="wuEnabled"> Enable Weather Underground Auto-Upload
+            </label>
+            <div>
+              <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.2rem;">Station ID</div>
+              <input type="text" id="wuStationId" class="unit-select" style="width: 100%;" placeholder="e.g. KCAFRAN123">
+            </div>
+            <div>
+              <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.2rem;">Station Key / Password</div>
+              <input type="password" id="wuStationKey" class="unit-select" style="width: 100%;" placeholder="Station Key">
+            </div>
+            <div>
+              <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.2rem;">Upload Interval</div>
+              <select id="wuInterval" class="unit-select" style="width: 100%;">
+                <option value="1">Every 1 Minute</option>
+                <option value="2">Every 2 Minutes</option>
+                <option value="5" selected>Every 5 Minutes (Recommended)</option>
+                <option value="10">Every 10 Minutes</option>
+                <option value="15">Every 15 Minutes</option>
+              </select>
+            </div>
+            <button type="submit" class="btn btn-primary" style="margin-top: 0.5rem;">Save Weather Underground Settings</button>
+          </form>
+        </div>
+
+        <!-- Home Assistant Form -->
+        <div class="card">
+          <div class="card-title" style="margin-bottom: 0.75rem;">🏠 Home Assistant (MQTT Auto-Discovery)</div>
+          <form id="formHA" style="display: flex; flex-direction: column; gap: 0.6rem;">
+            <label style="font-size: 0.8rem; display: flex; align-items: center; gap: 0.5rem;">
+              <input type="checkbox" id="haEnabled"> Enable Home Assistant MQTT Integration
+            </label>
+            <div>
+              <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.2rem;">MQTT Broker URL</div>
+              <input type="text" id="haBrokerUrl" class="unit-select" style="width: 100%;" placeholder="mqtt://192.168.1.100:1883">
+            </div>
+            <div>
+              <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.2rem;">Username (Optional)</div>
+              <input type="text" id="haUsername" class="unit-select" style="width: 100%;" placeholder="MQTT Username">
+            </div>
+            <div>
+              <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.2rem;">Password (Optional)</div>
+              <input type="password" id="haPassword" class="unit-select" style="width: 100%;" placeholder="MQTT Password">
+            </div>
+            <button type="submit" class="btn btn-primary" style="margin-top: 0.5rem;">Save Home Assistant Settings</button>
+          </form>
+        </div>
+
+        <!-- Station Location & Elevation Form -->
+        <div class="card">
+          <div class="card-title" style="margin-bottom: 0.75rem;">📍 Station Location & Elevation</div>
+          <form id="formLocation" style="display: flex; flex-direction: column; gap: 0.6rem;">
+            <div style="font-size: 0.78rem; color: var(--text-muted);">
+              Configure exact GPS coordinates for solar astronomy (sunrise/sunset) and altitude calibration. Leave blank to auto-detect via IP & terrain lookup.
+            </div>
+            <div>
+              <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.2rem;">Town / City / Region Name (Optional)</div>
+              <input type="text" id="locCityName" class="unit-select" style="width: 100%;" placeholder="e.g. Halesowen, West Midlands (or leave blank for Auto)">
+            </div>
+            <div>
+              <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.2rem;">Latitude (°N)</div>
+              <input type="text" id="locLatitude" class="unit-select" style="width: 100%;" placeholder="e.g. 52.685732 (or leave blank for Auto-IP)">
+            </div>
+            <div>
+              <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.2rem;">Longitude (°W / °E)</div>
+              <input type="text" id="locLongitude" class="unit-select" style="width: 100%;" placeholder="e.g. -2.033592 (or leave blank for Auto-IP)">
+            </div>
+            <div>
+              <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.2rem;">Altitude / Elevation (Meters)</div>
+              <input type="number" id="locAltitude" class="unit-select" style="width: 100%;" placeholder="e.g. 140 (or leave blank for Auto-DEM)">
+            </div>
+            <div style="display: flex; gap: 0.5rem; margin-top: 0.3rem;">
+              <button type="button" id="btnAutoDetectLoc" class="btn" style="border-color: #38bdf8; color: #38bdf8; font-weight: 600;">📡 Auto Detect Location</button>
+              <button type="submit" class="btn btn-primary" style="flex: 1;">Save Location Settings</button>
+            </div>
+          </form>
+        </div>
+
+      </div>
+
+      <!-- Server Shutdown Control Card -->
+      <div class="card" style="margin-top: 1rem; border: 1px solid rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.05);">
+        <div class="card-title" style="margin-bottom: 0.5rem; color: #ef4444;">🛑 Server Process Control</div>
+        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.8rem;">
+          Shut down the Weather Station Hub background node process and exit the server.
+        </div>
+        <button id="btnShutdownServer" class="btn" style="background: #ef4444; color: #ffffff; border: none; font-weight: 700;">
+          🛑 Stop & Exit Weather Station Hub
+        </button>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="footer">
+    <div class="footer-content">
+      <img src="Logo14.png" alt="AK DEV Logo" class="footer-logo-img">
+      <span>Fine Offset USB Weather Station Hub &copy; 2026 • Local REST API: <a href="/api/weather/current" target="_blank" style="color:#38bdf8;">/api/weather/current</a></span>
+    </div>
+  </footer>
+
+  <!-- Pop-out Telemetry History Graph Modal -->
+  <div id="graphModal" class="modal-overlay" aria-hidden="true">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <div id="modalMetricTitle" class="modal-title">Outdoor Temperature History</div>
+          <div id="modalCurrentVal" class="modal-current-val temp-outdoor">--</div>
+        </div>
+        <button id="modalCloseBtn" class="modal-close-btn" title="Close (Esc)">&times;</button>
+      </div>
+
+      <div class="modal-toolbar">
+        <div class="time-range-pills">
+          <button class="range-pill" data-range="1h">1 Hour</button>
+          <button class="range-pill active" data-range="24h">24 Hours</button>
+          <button class="range-pill" data-range="7d">1 Week</button>
+          <button class="range-pill" data-range="30d">1 Month</button>
+          <button class="range-pill" data-range="all">All Data</button>
+        </div>
+
+        <div class="modal-stats-strip">
+          <div>Min: <span id="modalStatMin">--</span></div>
+          <div>Avg: <span id="modalStatAvg">--</span></div>
+          <div>Max: <span id="modalStatMax">--</span></div>
+        </div>
+      </div>
+
+      <div class="modal-chart-box">
+        <canvas id="modalChartCanvas"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/units.js?v=2.1"></script>
+  <script src="js/gauges.js?v=2.1"></script>
+  <script src="js/astronomy.js?v=2.1"></script>
+  <script src="js/alarms.js?v=2.1"></script>
+  <script src="js/trend_animator.js?v=2.1"></script>
+  <script src="js/app.js?v=2.1"></script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "wunderground": {
+    "enabled": false,
+    "stationId": "",
+    "stationKey": "",
+    "uploadIntervalMinutes": 5
+  },
+  "homeassistant": {
+    "enabled": true,
+    "brokerUrl": "mqtt://192.168.3.104:1883",
+    "username": "mqtt",
+    "password": "mqtt",
+    "topicPrefix": "homeassistant"
+  }
+}

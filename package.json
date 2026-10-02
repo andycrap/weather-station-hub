@@ -1,0 +1,29 @@
+{
+  "name": "weather-station-hub",
+  "version": "1.0.0",
+  "description": "Modern Weather Station Desktop & Web Dashboard replacing EasyWeather for USB Fine Offset consoles",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "weather",
+    "station",
+    "fineoffset",
+    "usb",
+    "easyweather",
+    "dashboard",
+    "webhid"
+  ],
+  "author": "Antigravity",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2",
+    "mqtt": "^5.15.2",
+    "ws": "^8.17.0"
+  },
+  "optionalDependencies": {
+    "node-hid": "^3.1.0"
+  }
+}

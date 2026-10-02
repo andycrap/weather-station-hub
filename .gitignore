@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Build & Release Output
+dist/
+WeatherStationHub-Standalone/
+*.exe
+*.zip
+
+# Runtime data & logs
+weather_history.json
+*.log
+
+# Scratch & IDE
+scratch/
+.vs/
+bin/
+obj/
+
+# OS Files
+.DS_Store
+Thumbs.db
